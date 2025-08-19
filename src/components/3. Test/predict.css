@@ -1,0 +1,258 @@
+.predict-image {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+
+	align-items: center;
+
+	gap: 2rem;
+
+	& .predict-image-wrapper {
+		display: flex;
+		width: 100%;
+		justify-content: center;
+		align-items: center;
+		gap: 1rem;
+		flex-direction: column;
+	}
+
+	& .webcam-wrapper {
+		display: flex;
+		justify-content: center;
+		width: 50%;
+	}
+
+	& .predict-img-wrapper {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		overflow: hidden;
+		width: 50%;
+		aspect-ratio: 4 / 3;
+	}
+
+	& .predict-image-upload {
+		padding: 1.5rem 3rem;
+		border: 2px solid var(--color-primary);
+		border-radius: 5px;
+	}
+
+	& .predict-image-input {
+		display: none;
+	}
+
+	& .predict-image-hint {
+		padding: 0 3rem;
+	}
+
+	& .predict-image-input-label {
+		cursor: pointer;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 0.5rem;
+		font-weight: bold;
+		font-size: 1.2rem;
+
+		& .upload-icon {
+			width: var(--icon-size-large);
+		}
+	}
+
+	& .predict-test-image {
+		border: 1px solid var(--color-dark);
+		width: 100%;
+	}
+}
+
+.predict {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2rem;
+
+	& .predict-not-trained {
+		padding: 0 4rem;
+	}
+
+	& .input-selection-medium {
+		display: flex;
+		width: 80%;
+		padding-bottom: 1rem;
+
+		justify-content: center;
+	}
+
+	& .selection-inputs {
+		flex: 1;
+		display: flex;
+		justify-content: center;
+
+		& input {
+			display: none;
+		}
+	}
+
+	& .input-selection-label {
+		width: 75%;
+		display: flex;
+		justify-content: center;
+		cursor: pointer;
+		font-size: 1.15rem;
+		font-weight: bold;
+		background-color: var(--color-light);
+		padding: 0.25rem 2.5rem;
+		border-bottom: 2px solid var(--color-lightblue);
+		color: var(--color-primary);
+
+		&:hover {
+			border-color: var(--color-primary);
+		}
+
+		&.active {
+			background-color: var(--color-lightblue);
+			border-color: var(--color-primary);
+		}
+	}
+
+	& .inputs {
+		display: flex;
+		width: 100%;
+		flex: 1;
+		flex-direction: column;
+		gap: 1rem;
+		justify-content: center;
+		align-items: center;
+	}
+
+	& .prediction {
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+		width: 75%;
+	}
+
+	& .prediction-text {
+		font-size: 1.25rem;
+		padding: 0 2rem;
+		text-align: center;
+	}
+
+	& .prediction-output {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	& .prediction-output-text {
+		font-size: 1.25rem;
+	}
+
+	& .prediction-output-image {
+		max-width: 50%;
+	}
+
+	& .prediction-output-audio {
+		display: block;
+	}
+
+	.prediction-progress-bars {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.progress-bar-class {
+		width: 100%;
+		margin: auto;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+
+		/* &:nth-child(2n) {
+			& .progress-bar-class-progress-wrapper {
+				--color-progress: hsl(273, 79%, 46%);
+			}
+		}
+
+		&:nth-child(3n) {
+			& .progress-bar-class-progress-wrapper {
+				--color-progress: hsl(35, 79%, 46%);
+			}
+		}
+
+
+		&:nth-child(4n) {
+			& .progress-bar-class-progress-wrapper {
+				--color-progress: hsl(144, 79%, 46%);
+			} */
+	}
+
+	.progress-bar-class-name {
+		font-weight: bold;
+		font-size: 1.25rem;
+	}
+
+	.progress-bar-class-progress-wrapper {
+		width: 100%;
+		height: 1.5rem;
+		background-color: var(--color-lightblue);
+	}
+
+	.progress-bar-class-progress {
+		height: 100%;
+		position: relative;
+		width: calc(var(--progress-width, 0) * 1%);
+		background-color: var(--color-primary);
+		transition: width 0.25s ease-in-out;
+		animation: initalBarMove 0.25s ease-in-out 1;
+
+		&.small-bar {
+			& span {
+				transform: translateX(110%);
+			}
+		}
+
+		& span {
+			position: absolute;
+			right: 1%;
+			color: var(--color-light);
+			font-weight: bold;
+		}
+	}
+}
+
+@keyframes initalBarMove {
+	0% {
+		width: 0%;
+	}
+
+	100% {
+		width: calc(var(--progress-width, 0) * 1%);
+	}
+}
+
+@container (width < 400px) {
+	.predict {
+		&	.predict-not-trained {
+				padding: 0;
+		}
+	}
+
+	.predict-image {
+		.predict-button {
+			display: none;
+		}
+	}
+
+	& .prediction {
+		display: none;
+	}
+
+	& .predict-image-hint {
+		padding: 0;
+	}
+}

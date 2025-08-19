@@ -1,0 +1,120 @@
+:root {
+	--color-primary: hsl(197, 79.5%, 45.9%);
+	--color-dark: hsl(240, 29%, 10%);
+	--color-light: hsl(216, 12%, 92%);
+	--color-lightgray: hsl(200, 12%, 95%);
+	--color-darkgray: hsl(213, 5%, 39%);
+	--color-lightblue: hsl(197, 80.1%, 80.6%);
+	--color-darkblue: hsl(197, 81.8%, 40.2%);
+	--color-white: hsl(0, 0%, 100%);
+
+	--color-raw-primary: 197, 79.5%, 45.9%;
+	--color-raw-dark: 240, 29%, 10%;
+	--color-raw-light: 216, 12%, 92%;
+	--color-raw-lightgray: 200, 12%, 95%;
+	--color-raw-darkgray: 213, 5%, 39%;
+	--color-raw-lightblue: 197, 80.1%, 80.6%;
+	--color-raw-darkblue: 197, 81.8%, 40.2%;
+	--color-raw-white: 0, 0%, 100%;
+
+	--icon-size-small: 20px;
+	--icon-size-base: 24px;
+	--icon-size-large: 32px;
+
+	h1 {
+		font-size: 2.5rem;
+		font-weight: bold;
+		color: var(--color-primary);
+	}
+
+	h2 {
+		font-size: 1.8rem;
+		font-weight: bold;
+	}
+
+	h3 {
+		font-size: 1.4rem;
+		font-weight: bold;
+	}
+
+	h4 {
+		font-size: 1.35rem;
+		font-weight: bold;
+	}
+
+	h5 {
+		font-size: 1.15rem;
+		font-weight: bold;
+	}
+
+	h6 {
+		font-size: 1rem;
+		font-weight: bold;
+	}
+}
+
+::-webkit-scrollbar {
+	display: none;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background-color: rgba(155, 155, 155, 0.5);
+	border-radius: 20px;
+	border: transparent;
+}
+
+body {
+	background-color: var(--color-light);
+	color: var(--color-dark);
+}
+
+textarea {
+	resize: none;
+	border: 2px solid var(--color-primary);
+	background-color: inherit;
+	text-indent: 0.2rem;
+
+	&:focus {
+		outline: none;
+	}
+}
+
+input {
+	border: none;
+	background-color: transparent;
+
+	&:focus {
+		outline: none;
+	}
+}
+
+img.icon {
+	width: 100%;
+	height: 100%;
+}
+
+button.icon-btn {
+	display: flex;
+	align-items: center;
+
+	width: var(--icon-size-base);
+	height: var(--icon-size-base);
+
+	&.icon-btn-small {
+		width: var(--icon-size-small);
+		height: var(--icon-size-small);
+	}
+
+	&.icon-btn-large {
+		width: var(--icon-size-large);
+		height: var(--icon-size-large);
+	}
+}
+
+.hidden {
+	display: none !important;
+}

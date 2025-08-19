@@ -1,0 +1,64 @@
+.training-modell {
+	display: flex;
+	flex-direction: column;
+	gap: 4rem;
+	transition: all 0.1s;
+
+	& .training-modell-controls {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 1rem;
+	}
+
+	& .training-modell-status {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 2rem;
+	}
+
+	& .status-notifier {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 1.5rem;
+	}
+
+	& .status-text {
+		font-style: italic;
+		font-size: 1.3rem;
+		color: var(--color-dark);
+		opacity: 0.8;
+
+		&.is-trained {
+			font-weight: bold;
+			font-size: 1.5rem;
+		}
+	}
+
+	& .debug-augemented-img {
+		display: grid;
+		grid-template-columns: repeat(10, 1fr);
+		width: 75%;
+		margin: auto;
+	}
+}
+
+@container section (width < 500px) {
+	.training-modell {
+		& .status-text {
+			font-size: 1.1rem;
+
+			&.is-trained {
+				font-size: 1.3rem;
+			}
+		}
+
+		& .status-icon {
+			width: var(--icon-size-small);
+		}
+	}
+}

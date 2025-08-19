@@ -1,0 +1,89 @@
+.checking {
+	display: flex;
+	flex-direction: column;
+
+
+	& .checking-section, .checking-title {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	& .checking-title {
+		padding: 1rem 0 2rem;
+
+		& h3 {
+			font-style: italic;
+		}
+	}
+
+	& .checking-body {
+		flex: 1;
+		overflow: hidden;
+	}
+
+	& .checking-images {
+		width: 75%;
+		position: relative;
+		display: flex;
+		justify-content: right;
+	}
+	& .previous-previous-checking-image {
+		position: absolute;
+		left: 0;
+		z-index: 0;
+		opacity: 10%;
+	}
+	& .previous-checking-image {
+		position: absolute;
+		left:25%;
+		z-index: 50;
+		opacity: 50%;
+	}
+	& .current-checking-image {
+		position: relative;
+		z-index: 100;
+	}
+
+	& .checking-info {
+		flex: 1;
+		display: flex;
+		gap: 2rem;
+	}
+
+	& .compare-message {
+		flex: 1;
+		text-align: center;
+
+		& p {
+			font-size: 1.2rem;
+		}
+	}
+
+	& .checking-process {
+		& h3 {
+			text-align: center;
+			padding-bottom: 2rem;
+		}
+	}
+
+	& .found-images-list {
+		display: grid;
+		gap: 1rem;
+		grid-template-rows: repeat(6, 1fr);
+		grid-template-columns: repeat(4,1fr);
+	}
+
+	& .found-image-item {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		justify-content: center;
+		align-items: center;
+
+		& img {
+			width: 64px;
+			height: 64px;
+		}
+	}
+}
