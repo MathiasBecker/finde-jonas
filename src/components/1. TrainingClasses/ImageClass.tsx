@@ -1,11 +1,20 @@
 import { useSignal } from '@preact/signals';
 
 import './ImageClass.css';
-import { updateUploadClass } from '../../lib/imageClasses';
+import { appendImages, updateUploadClass } from '../../lib/imageClasses';
 import { useEffect, useRef } from 'preact/hooks';
 import { $cn } from '../../lib/utils';
 
 /** @typedef {import('../../lib/imageClasses').TrainingClass} TrainingClass */
+
+function readAsDataUri(file: File): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.addEventListener('load', () => resolve(reader.result as string));
+		reader.addEventListener('error', () => reject(reader.error));
+		reader.readAsDataURL(file);
+	});
+}
 
 /**
  *
@@ -18,36 +27,30 @@ function ClassCard({ trainingClass }) {
 	const inputElement = useRef(null);
 
 	async function onFileInput(event) {
-		const files = event.target.files;
+		const input = event.target as HTMLInputElement;
+		const files = [...(input.files ?? [])];
 
-		if (!files) {
+		// allow picking the same file again later
+		input.value = '';
+
+		if (files.length === 0) {
 			return;
 		}
 
+		// one unreadable file must not drop the others
+		const results = await Promise.allSettled(files.map((f) => readAsDataUri(f)));
 		const newImageUrls = [];
 
-		for (const f of files) {
-			const reader = new FileReader();
-
-			reader.addEventListener('load', (event) => {
-				const dataUri = /** @type {string} */ event.target.result;
-
-				newImageUrls.push(dataUri);
-
-				if (newImageUrls.length === files.length) {
-					updateUploadClass(trainingClass.name, { images: [...trainingClass.images, ...newImageUrls] });
-				}
-			});
-
-			reader.addEventListener('error', (event) => {
-				console.error(event);
-				if (newImageUrls.length > 0) {
-					updateUploadClass(trainingClass.name, { images: [...trainingClass.images, ...newImageUrls] });
-				}
-			});
-
-			reader.readAsDataURL(f);
+		for (const r of results) {
+			if (r.status === 'fulfilled') {
+				newImageUrls.push(r.value);
+			}
+			else {
+				console.error(r.reason);
+			}
 		}
+
+		appendImages(trainingClass.name, newImageUrls);
 	}
 
 	useEffect(() => {

@@ -4,48 +4,48 @@ import { $cn } from '../../lib/utils';
 import ImageClassCard from './ImageClass';
 import { generateImagesFeatures } from '../../lib/imageClasses';
 import { imageClasses, trained } from '../../lib/states';
-import { initCustomModel, processedClass, trainModel } from '../../lib/machineLearning';
+import { initCustomModel, predictionResult, processedClass, trainModel } from '../../lib/machineLearning';
 import { useSignal } from '@preact/signals';
 
 function TrainingClasses() {
-	const modelLoaded = useSignal(false);
-	const loadedClasses = useSignal([]);
 	const isTraining = useSignal(false);
-	// const failedLoading = useSignal(false);
+	const trainingError = useSignal(false);
 
 	async function train() {
-		isTraining.value = true;
-		processedClass.value = '';
-		loadedClasses.value = [];
-
-		const activeImageClassesLength = imageClasses.value.filter((c) => c.isActive).length;
-
-		if (activeImageClassesLength < 2) {
-			alert('Es müssen mindestens 2 Klassen angegeben werden');
-			isTraining.value = false;
+		// ignore a second click while a run is in progress
+		if (isTraining.value) {
 			return;
 		}
 
-		await initCustomModel(activeImageClassesLength);
+		const activeClasses = imageClasses.value.filter((c) => c.isActive);
 
-		await generateImagesFeatures();
+		if (activeClasses.length < 2) {
+			alert('Es müssen mindestens 2 Klassen angegeben werden');
+			return;
+		}
 
-		await trainModel();
-		modelLoaded.value = true;
-		trained.value = true;
+		isTraining.value = true;
+		trainingError.value = false;
+		processedClass.value = '';
+		// steps 2 and 3 unmount while untrained, so their old results are cleared
+		trained.value = false;
+		predictionResult.value = [];
 
-		isTraining.value = false;
+		try {
+			await initCustomModel(activeClasses.length);
+			await generateImagesFeatures();
+			await trainModel();
+			trained.value = true;
+		}
+		catch (error) {
+			console.error(error);
+			trainingError.value = true;
+		}
+		finally {
+			isTraining.value = false;
+		}
 	}
 
-	processedClass.subscribe((className) => {
-		if (className === '') {
-			return;
-		}
-
-		const set = new Set(loadedClasses.value);
-		set.add(className);
-		loadedClasses.value = [...set];
-	});
 	return (
 		<>
 			<div class="training-classes">
@@ -56,7 +56,7 @@ function TrainingClasses() {
 				</ul>
 			</div>
 			<div className="train-button-container">
-				<button className="tmButton train-btn" disabled={imageClasses.value.some((c) => c.images.length === 0)} onClick={() => train()}>
+				<button className="tmButton train-btn" disabled={isTraining.value || imageClasses.value.some((c) => c.images.length === 0)} onClick={() => train()}>
 					<div class="train-button--text">
 						Trainieren
 						<span class="status-icon">
@@ -65,6 +65,9 @@ function TrainingClasses() {
 						</span>
 					</div>
 				</button>
+				{trainingError.value && (
+					<p class="training-error">Beim Trainieren ist ein Fehler aufgetreten. Bitte versuche es noch einmal.</p>
+				)}
 			</div>
 		</>
 	);

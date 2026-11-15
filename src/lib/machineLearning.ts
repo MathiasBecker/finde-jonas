@@ -107,14 +107,8 @@ function logProgress(epoch, logs) {
 }
 
 export function resetModel() {
+	customModel.value?.dispose();
 	customModel.value = null;
-}
-
-function getNormalized(values, left, right) {
-	const min = Math.min(...values),
-		max = Math.max(...values),
-		factor = (right - left) / (max - min);
-	return values.map((v) => (v - min) * factor + left);
 }
 
 export function predict(reference: HTMLImageElement): number[] {
@@ -128,9 +122,8 @@ export function predict(reference: HTMLImageElement): number[] {
 		const tsPredict = customModel.value.predict(imageFeatures) as tf.Tensor;
 		const prediction = tsPredict.squeeze();
 		predictionArray = prediction.arraySync() as number[];
-		// predictionArray = predictionArray.map((p) => Math.ceil(p * 100));
-		predictionArray = getNormalized(predictionArray, 0, 100);
-		predictionArray = predictionArray.map((p) => Number(p.toFixed(1)));
+		// softmax output as percent; min-max normalising forced every 2-class result to 0 / 100
+		predictionArray = predictionArray.map((p) => Number((p * 100).toFixed(1)));
 	});
 
 	console.log({ predictionArray });

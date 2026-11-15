@@ -26,29 +26,21 @@ function shuffle(array) {
 export default function Checking() {
 	const checkingState: Signal<CheckingState> = useSignal('idle');
 
-	const activeImageIndex = useSignal(-1);
-	const imageIndexes = [...Array.from({ length: secImgDataUris.value.length }).keys()];
+	// shuffled order of secImgDataUris indexes, fixed for one run (was reshuffled on every render)
+	const imageOrder: Signal<number[]> = useSignal([]);
+	// position within imageOrder of the image currently shown in the slide
+	const slidePosition = useSignal(-1);
 
 	const compareImageIndex = useSignal(-1);
-	const comparingMessage = useSignal('test');
+	const comparingMessage = useSignal('');
 
 	const matchedImages = useSignal([]);
 
-	shuffle(imageIndexes);
-
-	function slideImages(t = 50) {
-		return new Promise<void>((resolve) => {
-			let currentIndex = 0;
-			const intervalID = setInterval(() => {
-				activeImageIndex.value = imageIndexes[currentIndex];
-				currentIndex++;
-
-				if (currentIndex === imageIndexes.length) {
-					clearInterval(intervalID);
-					resolve();
-				}
-			}, t);
-		});
+	async function slideImages(t = 50) {
+		for (let position = 0; position < imageOrder.value.length; position++) {
+			slidePosition.value = position;
+			await wait(t);
+		}
 	}
 
 	// function compareImages(t = 100) {
@@ -59,7 +51,7 @@ export default function Checking() {
 	// 			const imgIndex = imageIndexes[currentIndex];
 	// 			const { name } = secImgDataUris.value[imgIndex];
 
-	// 			if (IMGWITHPWERSON.has(Number.parseInt(name, 10))) {
+	// 			if (IMG_WITH_PERSON.has(Number.parseInt(name, 10))) {
 	// 				comparingMessage.value = `Person erkannt.`;
 	// 				matchedImages.value = [...matchedImages.value, imgIndex];
 	// 			}
@@ -76,38 +68,37 @@ export default function Checking() {
 	// 	});
 	// }
 
-	function predictImages(t = 100) {
-		return new Promise<void>((resolve) => {
-			let currentIndex = 0;
-			const intervalID = setInterval(() => {
-				compareImageIndex.value = currentIndex;
-				const imgIndex = imageIndexes[currentIndex];
-				const { dataUri } = secImgDataUris.value[imgIndex];
+	// one image after the other: the old setInterval did not wait for the image to load,
+	// so on slow machines images were checked twice or skipped
+	async function predictImages(t = 100) {
+		for (const [position, imgIndex] of imageOrder.value.entries()) {
+			compareImageIndex.value = position;
+			const imgElement = document.createElement('img');
+			imgElement.src = secImgDataUris.value[imgIndex].dataUri;
+			await imgElement.decode();
 
-				const imgElement = document.createElement('img');
-
-				imgElement.src = dataUri;
-
-				imgElement.addEventListener('load', async () => {
-					const result = predict(imgElement);
-					if (result[1] > 50) {
-						comparingMessage.value = `Person erkannt.`;
-						matchedImages.value = [...matchedImages.value, imgIndex];
-					}
-					else {
-						comparingMessage.value = `keine Person erkannt.`;
-					}
-					currentIndex++;
-					if (currentIndex === imageIndexes.length) {
-						clearInterval(intervalID);
-						resolve();
-					}
-				});
-			}, t);
-		});
+			const result = predict(imgElement);
+			// index 1 is the class "Bilder mit Person"
+			if (result[1] > 50) {
+				comparingMessage.value = `Person erkannt.`;
+				matchedImages.value = [...matchedImages.value, imgIndex];
+			}
+			else {
+				comparingMessage.value = `keine Person erkannt.`;
+			}
+			await wait(t);
+		}
 	}
 
 	async function startChecking() {
+		const order = [...secImgDataUris.value.keys()];
+		shuffle(order);
+		imageOrder.value = order;
+		slidePosition.value = -1;
+		compareImageIndex.value = -1;
+		comparingMessage.value = '';
+		matchedImages.value = [];
+
 		// show image slide
 		checkingState.value = 'loading-images';
 		await wait(1000);
@@ -141,9 +132,12 @@ export default function Checking() {
 					</h3>
 				)}
 				{checkingState.value === 'finished' && (
-					<h3>
-						Alle Bilder überprüft.
-					</h3>
+					<>
+						<h3>
+							Alle Bilder überprüft.
+						</h3>
+						<button onClick={startChecking} class="tmButton">Erneut überprüfen</button>
+					</>
 				)}
 
 			</div>
@@ -152,14 +146,15 @@ export default function Checking() {
 					{checkingState.value === 'loading-images' && (
 						<div className="checking-images">
 							{/* image goes here */}
-							{activeImageIndex.value > 2 && (
-								<img class="previous-previous-checking-image" src={secImgDataUris.value[activeImageIndex.value - 2].dataUri} alt="" />
+							{/* the two images shown before the current one in this run's order */}
+							{slidePosition.value >= 2 && (
+								<img class="previous-previous-checking-image" src={secImgDataUris.value[imageOrder.value[slidePosition.value - 2]].dataUri} alt="" />
 							)}
-							{activeImageIndex.value > 1 && (
-								<img class="previous-checking-image" src={secImgDataUris.value[activeImageIndex.value - 1].dataUri} alt="" />
+							{slidePosition.value >= 1 && (
+								<img class="previous-checking-image" src={secImgDataUris.value[imageOrder.value[slidePosition.value - 1]].dataUri} alt="" />
 							)}
-							{activeImageIndex.value >= 0 && (
-								<img class="current-checking-image" src={secImgDataUris.value[activeImageIndex.value].dataUri} alt="" />
+							{slidePosition.value >= 0 && (
+								<img class="current-checking-image" src={secImgDataUris.value[imageOrder.value[slidePosition.value]].dataUri} alt="" />
 							)}
 						</div>
 					)}
@@ -178,7 +173,7 @@ export default function Checking() {
 								</div>
 								<div class="compare-message">
 									<h3>
-										Ergebniss:
+										Ergebnis:
 									</h3>
 									<p class="summary-message">
 										{comparingMessage.value}

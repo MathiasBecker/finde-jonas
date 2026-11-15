@@ -1,5 +1,3 @@
-import 'preact/debug';
-
 import '@unocss/reset/tailwind.css';
 import './style.css';
 import './app.css';
@@ -7,6 +5,7 @@ import './app.css';
 import { render } from 'preact';
 
 import { useSignal } from '@preact/signals';
+import { useEffect } from 'preact/hooks';
 import Section from './components/Section/Section';
 import TrainingClasses from './components/1. TrainingClasses/TrainingClasses.js';
 
@@ -19,13 +18,8 @@ import Checking from './components/4. Checking/checking';
 // @ts-expect-error Var is defined in Vite but no d.ts file in this project.
 console.info(`Last Build: ${__VERSION__.date}`);
 
-async function init() {
-	if (initialised.value) {
-		return;
-	}
-	await loadMobileNetModel();
-	// add two uploadClasses
-}
+// number of sections rendered below; the last index is SECTION_COUNT - 1
+const SECTION_COUNT = 3;
 
 // prevent reloading via shortcut
 document.addEventListener('keydown', (event) => {
@@ -36,33 +30,65 @@ document.addEventListener('keydown', (event) => {
 
 export function App() {
 	const activeSection = useSignal(0);
-	const arrowKeyPressed = useSignal(false);
+	const loadError = useSignal(false);
 
-	document.addEventListener('keydown', (event) => {
-		if (event.key === 'ArrowRight') {
-			if (arrowKeyPressed.value) {
+	// register the arrow-key navigation once, not on every render
+	useEffect(() => {
+		let arrowKeyPressed = false;
+
+		function onKeyDown(event: KeyboardEvent) {
+			if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') {
 				return;
 			}
-			nextSection();
-			arrowKeyPressed.value = true;
-		}
-		if (event.key === 'ArrowLeft') {
-			if (arrowKeyPressed.value) {
+			if (arrowKeyPressed) {
 				return;
 			}
-			previousSection();
-			arrowKeyPressed.value = true;
+			arrowKeyPressed = true;
+			if (event.key === 'ArrowRight') {
+				nextSection();
+			}
+			else {
+				previousSection();
+			}
 		}
-	});
 
-	document.addEventListener('keyup', (event) => {
-		if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-			arrowKeyPressed.value = false;
+		function onKeyUp(event: KeyboardEvent) {
+			if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+				arrowKeyPressed = false;
+			}
 		}
-	});
+
+		document.addEventListener('keydown', onKeyDown);
+		document.addEventListener('keyup', onKeyUp);
+		return () => {
+			document.removeEventListener('keydown', onKeyDown);
+			document.removeEventListener('keyup', onKeyUp);
+		};
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- register once; the handlers only use the stable activeSection signal
+	}, []);
+
+	// load the model once; show an error with a retry instead of an endless spinner
+	async function init() {
+		loadError.value = false;
+		try {
+			await loadMobileNetModel();
+			initialised.value = true;
+		}
+		catch (error) {
+			console.error(error);
+			loadError.value = true;
+		}
+	}
+
+	useEffect(() => {
+		if (!initialised.value) {
+			init();
+		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- load the model once on mount
+	}, []);
 
 	function nextSection() {
-		if (activeSection.value === 4) {
+		if (activeSection.value >= SECTION_COUNT - 1) {
 			return;
 		}
 		activeSection.value = activeSection.value + 1;
@@ -75,16 +101,22 @@ export function App() {
 		activeSection.value = activeSection.value - 1;
 	}
 
-	init().then(() => {
-		initialised.value = true;
-	});
-
 	return (
 		<div class="App">
-			{!initialised.value && (
+			{!initialised.value && !loadError.value && (
 				<div className="loading">
 					<h2>App wird geladen...</h2>
 					<span class="mbn-spinner" />
+				</div>
+			)}
+
+			{!initialised.value && loadError.value && (
+				<div className="loading">
+					<h2>Das KI-Modell konnte nicht geladen werden.</h2>
+					<p>Bitte prüfe die Internetverbindung und versuche es noch einmal.</p>
+					<button class="tmButton" onClick={() => init()}>
+						Erneut versuchen
+					</button>
 				</div>
 			)}
 
@@ -117,17 +149,17 @@ export function App() {
 								size="medium"
 								title="3. Überprüfung der Überwachungskamera"
 								active={activeSection.value === 2}
-								notTrainedMessage="Du musst zunächst dein Modell trainieren, damit du die überwachungskamerabilder prüfen kannst."
+								notTrainedMessage="Du musst zunächst dein Modell trainieren, damit du die Überwachungskamerabilder prüfen kannst."
 							>
 								<Checking />
 							</Section>
 						</div>
 					</main>
 					<div className="controlbar">
-						<button onClick={previousSection} className="prevSection tmButton">
+						<button onClick={previousSection} className="prevSection tmButton" disabled={activeSection.value === 0}>
 							Zurück
 						</button>
-						<button onClick={nextSection} className="nextSection tmButton">
+						<button onClick={nextSection} className="nextSection tmButton" disabled={activeSection.value >= SECTION_COUNT - 1}>
 							Weiter
 						</button>
 					</div>

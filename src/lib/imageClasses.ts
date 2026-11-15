@@ -1,5 +1,5 @@
 import { signal } from '@preact/signals';
-import { getImageFeatures } from './machineLearning';
+import { getImageFeatures, predictionResult } from './machineLearning';
 import { imageClasses, trained } from './states';
 
 // global ID counter
@@ -20,8 +20,15 @@ function findClassIndexByName(name) {
 	return imageClasses.value.findIndex((c) => c.name === name);
 }
 
+// any change to the training data makes the trained model stale
+function invalidateModel() {
+	trained.value = false;
+	predictionResult.value = [];
+}
+
 export function updateUploadClass(name, properties) {
-	const currentState = structuredClone(imageClasses.peek());
+	// shallow copy: structuredClone turned the stored feature tensors into plain objects
+	const currentState = imageClasses.peek().map((c) => ({ ...c }));
 
 	const index = findClassIndexByName(name);
 
@@ -33,6 +40,18 @@ export function updateUploadClass(name, properties) {
 	currentState[index] = { ...currentState[index], ...properties };
 
 	imageClasses.value = currentState;
+	invalidateModel();
+}
+
+// append to the class's current images (not a copy captured when the upload started)
+export function appendImages(name, dataUris: string[]) {
+	const current = imageClasses.peek().find((c) => c.name === name);
+
+	if (!current || dataUris.length === 0) {
+		return;
+	}
+
+	updateUploadClass(name, { images: [...current.images, ...dataUris] });
 }
 
 export function addUploadClass(initalProperties) {
@@ -61,7 +80,12 @@ export async function generateImagesFeatures() {
 
 	// reset imagefeatures
 
-	for (const c of currentState) (c.imagesFeatures = []);
+	for (const c of currentState) {
+		for (const feature of c.imagesFeatures as { dispose?: () => void }[]) {
+			feature.dispose?.();
+		}
+		c.imagesFeatures = [];
+	}
 
 	const processedImages = signal(0);
 
@@ -78,5 +102,6 @@ export async function generateImagesFeatures() {
 		}
 	}
 
-	imageClasses.value = [...currentState];
+	// keep inactive classes in the state instead of dropping them
+	imageClasses.value = [...imageClasses.value];
 }
