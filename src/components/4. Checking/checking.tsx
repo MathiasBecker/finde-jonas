@@ -1,10 +1,15 @@
 import './checking.css';
 
 import { Signal, useSignal } from '@preact/signals';
+import { useEffect } from 'preact/hooks';
+import { createPortal } from 'preact/compat';
 
-import { secImgDataUris } from '../../lib/states';
+import { IMG_WITH_PERSON, secImgDataUris } from '../../lib/states';
 import { wait } from '../../lib/utils';
 import { predict } from '../../lib/machineLearning';
+
+// the "Auflösung zeigen" button is hidden for now; set to true to show it again
+const SHOW_REVEAL_BUTTON = false;
 
 type CheckingState = 'idle' | 'loading-images' | 'compare-images' | 'finished';
 
@@ -35,6 +40,24 @@ export default function Checking() {
 	const comparingMessage = useSignal('');
 
 	const matchedImages = useSignal([]);
+
+	// "Auflösung": mark hits as right/wrong and list the missed Jonas images
+	const revealed = useSignal(false);
+	// index into secImgDataUris of the image shown enlarged, null = closed
+	const zoomIndex: Signal<number | null> = useSignal(null);
+
+	const isJonas = (index: number) => IMG_WITH_PERSON.has(Number.parseInt(secImgDataUris.value[index].name, 10));
+
+	useEffect(() => {
+		function onKeyDown(event: KeyboardEvent) {
+			if (event.key === 'Escape') {
+				zoomIndex.value = null;
+			}
+		}
+		document.addEventListener('keydown', onKeyDown);
+		return () => document.removeEventListener('keydown', onKeyDown);
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- register once; zoomIndex is a stable signal
+	}, []);
 
 	async function slideImages(t = 50) {
 		for (let position = 0; position < imageOrder.value.length; position++) {
@@ -98,6 +121,8 @@ export default function Checking() {
 		compareImageIndex.value = -1;
 		comparingMessage.value = '';
 		matchedImages.value = [];
+		revealed.value = false;
+		zoomIndex.value = null;
 
 		// show image slide
 		checkingState.value = 'loading-images';
@@ -136,7 +161,14 @@ export default function Checking() {
 						<h3>
 							Alle Bilder überprüft.
 						</h3>
-						<button onClick={startChecking} class="tmButton">Erneut überprüfen</button>
+						<div class="checking-actions">
+							{SHOW_REVEAL_BUTTON && (
+								<button onClick={() => { revealed.value = !revealed.value; }} class="tmButton">
+									{revealed.value ? 'Auflösung ausblenden' : 'Auflösung zeigen'}
+								</button>
+							)}
+							<button onClick={startChecking} class="tmButton">Erneut überprüfen</button>
+						</div>
 					</>
 				)}
 
@@ -185,22 +217,62 @@ export default function Checking() {
 				</div>
 				<div className="checking-section">
 					<div className="checking-process">
-						{(checkingState.value === 'compare-images' || checkingState.value === 'finished') && (
-							<>
-								<h3>Gefundene Kamera Bilder:</h3>
-								<ul class="found-images-list">
-									{matchedImages.value.map((index) => (
-										<li class="found-image-item" key={index}>
-											{`Kamera: ${secImgDataUris.value[index].name}`}
-											<img src={secImgDataUris.value[index].dataUri} alt="" />
-										</li>
-									))}
-								</ul>
-							</>
-						)}
+						{(checkingState.value === 'compare-images' || checkingState.value === 'finished') && (() => {
+							const show = revealed.value && checkingState.value === 'finished';
+							const matched: number[] = matchedImages.value;
+							const correct = matched.filter((index) => isJonas(index)).length;
+							const missed = [...secImgDataUris.value.keys()].filter((index) => isJonas(index) && !matched.includes(index));
+							const renderItem = (index: number, verdict: '' | 'correct' | 'wrong' | 'missed') => (
+								<li class={`found-image-item ${verdict}`} key={index}>
+									<span>
+										{`Kamera: ${secImgDataUris.value[index].name}`}
+										{verdict === 'correct' && ' ✓'}
+										{verdict === 'wrong' && ' ✗'}
+									</span>
+									<img
+										src={secImgDataUris.value[index].dataUri}
+										alt={`Kamerabild ${secImgDataUris.value[index].name}`}
+										title="Zum Vergrößern klicken"
+										onClick={() => { zoomIndex.value = index; }}
+									/>
+								</li>
+							);
+							return (
+								<>
+									<h3>Gefundene Kamera Bilder:</h3>
+									{show && (
+										<p class="reveal-summary">
+											{`${correct} von ${correct + missed.length} Bildern mit Jonas gefunden · ${matched.length - correct} falsch erkannt · ${missed.length} übersehen`}
+										</p>
+									)}
+									<ul class="found-images-list">
+										{matched.map((index) => renderItem(index, show ? (isJonas(index) ? 'correct' : 'wrong') : ''))}
+									</ul>
+									{show && missed.length > 0 && (
+										<>
+											<h3 class="missed-title">Übersehen (Jonas ist drauf):</h3>
+											<ul class="found-images-list">
+												{missed.map((index) => renderItem(index, 'missed'))}
+											</ul>
+										</>
+									)}
+								</>
+							);
+						})()}
 					</div>
 				</div>
 			</div>
+			{zoomIndex.value !== null && createPortal(
+				<div class="image-zoom" onClick={() => { zoomIndex.value = null; }}>
+					<img src={secImgDataUris.value[zoomIndex.value].dataUri} alt={`Kamerabild ${secImgDataUris.value[zoomIndex.value].name}`} />
+					<p>
+						{`Kamera: ${secImgDataUris.value[zoomIndex.value].name}`}
+						{revealed.value && checkingState.value === 'finished' && (isJonas(zoomIndex.value) ? ' · Jonas ist drauf' : ' · Jonas ist nicht drauf')}
+						{' · Klicken oder Esc zum Schließen'}
+					</p>
+				</div>,
+				document.body,
+			)}
 		</div>
 	);
 }
